@@ -10,6 +10,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import normalize
 
+import random
+
 # %% variables and data import
 order = 4
 c = .02
@@ -18,11 +20,16 @@ forgetting_factor = 0.97
 training_size = 101
 num_iter = 10
 
-raw_data = np.genfromtxt('wing_data.csv', delimiter=',')
+raw_data = np.genfromtxt('sin.csv', delimiter=',')
+raw_data = raw_data[0:training_size]
 
-raw_data= raw_data[raw_data[:,1]==0]
-train_in = np.array([[x,y] for x, y in zip(raw_data[:,0],raw_data[:,2])], dtype=np.float32)
+#raw_data= raw_data[raw_data[:,1]==0]
+train_in = np.array([[x,y] for x, y in zip(raw_data[:,0],raw_data[:,1])], dtype=np.float32)
 train_out = raw_data[:,-1]
+
+plt.figure()
+plt.plot(train_out)
+plt.show()
 
 training_error = []
 
@@ -46,7 +53,7 @@ def bias_variable(shape):
     return tf.Variable(initial)
 
 def bias_constant(shape):
-    return tf.constant(.01, shape = shape)
+    return tf.constant(.1, shape = shape)
 
 # %% network
 def Net(_x, _weights, _bias, _rbf):
@@ -81,13 +88,14 @@ weights = {
 
 biases = {
     'b1': bias_constant([training_size, 1]),
-    'b2': bias_variable([101])
+    'b2': bias_variable([training_size])
 }
 
 def get_centers(_x, _order):
     '''
     generates centers from the given data points,
-    randomly selecting 
+    randomly selecting points within the range
+    of input data 
     '''
     low = _x.min()
     high = _x.max()
@@ -152,7 +160,7 @@ for step in range(num_iter):
     
     #update weights
     for i in range(training_size):
-        rbf_out_temp = tf.reshape(rbf_out[i], [5, 1])
+        rbf_out_temp = tf.reshape(rbf_out[i], [order+1, 1])
         _temp = tf.matmul(covariance, rbf_out_temp)
         
         _denom = tf.matmul(tf.transpose(_temp), rbf_out_temp) + forgetting_factor
@@ -194,5 +202,10 @@ pred = Net(normed_train_data, weights, biases, rbf_out).eval(session=sess).flatt
 plt.figure()
 plt.plot(pred)
 plt.plot(train_out)
+plt.savefig('pred_vs_actual.png')
+plt.show()
+
+plt.figure()
+plt.plot(training_error)
 plt.savefig('training_error.png')
 plt.show()
